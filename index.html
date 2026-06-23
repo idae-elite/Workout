@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#04060d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SYSTEM">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Crect width='180' height='180' fill='%23060a16'/%3E%3Cpath d='M40 40h22M40 40v22M140 40h-22M140 40v22M40 140h22M40 140v-22M140 140h-22M140 140v-22' stroke='%232fc8ff' stroke-width='4' fill='none'/%3E%3Ctext x='90' y='108' font-family='Arial' font-size='64' font-weight='bold' fill='%232fc8ff' text-anchor='middle'%3E%E2%9A%94%3C/text%3E%3C/svg%3E">
+<title>SYSTEM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --void:#04060d;
+  --abyss:#0a1020;
+  --panel:rgba(16,28,54,.62);
+  --line:rgba(47,200,255,.32);
+  --sys:#2fc8ff;
+  --sys-soft:#7fdcff;
+  --mana:#4d7cff;
+  --text:#d6e7ff;
+  --dim:#6c83b3;
+  --danger:#ff2e57;
+  --danger-soft:#ff7d97;
+  --gold:#ffcf4d;
+  --ok:#39e6a8;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  font-family:'Noto Sans KR',system-ui,sans-serif;
+  background:var(--void);
+  color:var(--text);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+/* atmospheric background */
+.bg{position:fixed;inset:0;z-index:-2;
+  background:
+    radial-gradient(1200px 700px at 50% -10%, rgba(47,120,255,.18), transparent 60%),
+    radial-gradient(900px 600px at 90% 110%, rgba(47,200,255,.10), transparent 60%),
+    var(--void);
+}
+.grid{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.35;
+  background-image:
+    linear-gradient(rgba(47,200,255,.05) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(47,200,255,.05) 1px,transparent 1px);
+  background-size:34px 34px;
+  -webkit-mask-image:radial-gradient(circle at 50% 30%,#000,transparent 90%);
+          mask-image:radial-gradient(circle at 50% 30%,#000,transparent 90%);
+}
+.app{max-width:520px;margin:0 auto;padding:
+  calc(env(safe-area-inset-top) + 14px) 16px
+  calc(env(safe-area-inset-bottom) + 92px) 16px;}
+
+/* ---- system label ---- */
+.eyebrow{font-family:'Orbitron',sans-serif;font-weight:700;letter-spacing:.34em;
+  font-size:11px;color:var(--sys);text-transform:uppercase;
+  text-shadow:0 0 12px rgba(47,200,255,.55)}
+.eyebrow::before{content:"[ ";color:var(--dim)}
+.eyebrow::after{content:" ]";color:var(--dim)}
+
+/* ---- panel with corner brackets ---- */
+.panel{position:relative;background:var(--panel);
+  border:1px solid var(--line);border-radius:4px;
+  backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);
+  box-shadow:0 0 0 1px rgba(0,0,0,.4),0 14px 40px rgba(0,0,0,.55),
+    inset 0 0 60px rgba(47,120,255,.06);
+  padding:18px;}
+.panel::before,.panel::after{content:"";position:absolute;width:14px;height:14px;
+  border:2px solid var(--sys);filter:drop-shadow(0 0 5px rgba(47,200,255,.8))}
+.panel::before{top:-1px;left:-1px;border-right:none;border-bottom:none}
+.panel::after{bottom:-1px;right:-1px;border-left:none;border-top:none}
+.panel .br-tr,.panel .br-bl{content:"";position:absolute;width:14px;height:14px;
+  border:2px solid var(--sys);filter:drop-shadow(0 0 5px rgba(47,200,255,.8))}
+.panel .br-tr{top:-1px;right:-1px;border-left:none;border-bottom:none}
+.panel .br-bl{bottom:-1px;left:-1px;border-right:none;border-top:none}
+
+/* ---- status header panel ---- */
+.status{position:sticky;top:0;z-index:30;margin:-2px 0 16px;
+  padding-top:calc(env(safe-area-inset-top) + 4px);background:transparent}
+.status-inner{padding:16px 18px 16px}
+.status-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.pname{font-family:'Orbitron',sans-serif;font-weight:700;font-size:18px;
+  letter-spacing:.12em;color:#fff;text-shadow:0 0 16px rgba(47,200,255,.5);margin:6px 0 0}
+.rank{display:flex;flex-direction:column;align-items:center;gap:2px;flex:none}
+.rank-badge{font-family:'Orbitron',sans-serif;font-weight:900;font-size:30px;line-height:1;
+  width:58px;height:58px;display:grid;place-items:center;border:1.5px solid var(--sys);
+  border-radius:6px;color:var(--sys);text-shadow:0 0 14px rgba(47,200,255,.8);
+  background:radial-gradient(circle at 50% 40%,rgba(47,200,255,.18),transparent 70%);
+  box-shadow:0 0 22px rgba(47,200,255,.25),inset 0 0 18px rgba(47,200,255,.12)}
+.rank-label{font-family:'Orbitron',sans-serif;font-size:9px;letter-spacing:.22em;color:var(--dim)}
+.lv-row{display:flex;align-items:baseline;gap:8px;margin-top:14px}
+.lv-tag{font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:.3em;color:var(--dim)}
+.lv-num{font-family:'Orbitron',sans-serif;font-weight:900;font-size:34px;line-height:1;
+  color:#fff;text-shadow:0 0 18px rgba(47,200,255,.6)}
+.exp-wrap{margin-top:10px}
+.exp-meta{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);
+  letter-spacing:.08em;margin-bottom:5px}
+.exp-meta b{color:var(--sys-soft);font-weight:500}
+.bar{height:9px;border:1px solid var(--line);border-radius:6px;overflow:hidden;
+  background:rgba(0,0,0,.45);position:relative}
+.bar>i{display:block;height:100%;border-radius:5px;
+  background:linear-gradient(90deg,var(--mana),var(--sys));
+  box-shadow:0 0 14px rgba(47,200,255,.7);transition:width .6s cubic-bezier(.2,.8,.2,1);position:relative}
+.bar>i::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);
+  transform:translateX(-100%);animation:shimmer 2.6s linear infinite}
+@keyframes shimmer{to{transform:translateX(200%)}}
+.chips{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.chip{display:flex;align-items:center;gap:6px;font-size:11px;letter-spacing:.06em;
+  padding:5px 10px;border:1px solid var(--line);border-radius:3px;color:var(--dim);
+  background:rgba(0,0,0,.25)}
+.chip b{color:var(--text);font-family:'Orbitron',sans-serif;font-weight:700;font-size:12px}
+.chip.fire b{color:var(--gold)}
+
+/* ---- generic ---- */
+h2.sec{font-size:15px;font-weight:700;letter-spacing:.04em;margin:0 0 3px;color:#fff}
+.sub{font-size:12px;color:var(--dim);margin:0 0 14px;line-height:1.5}
+.view{display:none;animation:fade .35s ease}
+.view.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.mt{margin-top:14px}
+
+/* ---- quest items ---- */
+.clock{font-family:'Orbitron',sans-serif;letter-spacing:.12em;font-size:13px;color:var(--sys-soft);
+  text-shadow:0 0 10px rgba(47,200,255,.4)}
+.qhead{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:4px}
+.qdate{font-size:12px;color:var(--dim);letter-spacing:.05em}
+.progress-line{font-size:12px;color:var(--sys-soft);font-family:'Orbitron',sans-serif;letter-spacing:.1em}
+.quest{display:flex;gap:13px;align-items:flex-start;padding:14px 4px;
+  border-bottom:1px solid rgba(47,200,255,.12)}
+.quest:last-child{border-bottom:none}
+.qcheck{flex:none;width:26px;height:26px;border:1.5px solid var(--line);border-radius:4px;
+  display:grid;place-items:center;cursor:pointer;transition:.18s;margin-top:1px;
+  background:rgba(0,0,0,.3)}
+.qcheck svg{width:15px;height:15px;opacity:0;transform:scale(.4);transition:.18s;stroke:var(--void)}
+.quest.done .qcheck{background:var(--sys);border-color:var(--sys);
+  box-shadow:0 0 16px rgba(47,200,255,.7)}
+.quest.done .qcheck svg{opacity:1;transform:scale(1)}
+.qbody{flex:1;min-width:0}
+.qname{font-weight:700;font-size:15px;letter-spacing:.01em;transition:.18s}
+.quest.done .qname{color:var(--dim);text-decoration:line-through}
+.qmeta{display:flex;flex-wrap:wrap;gap:6px 8px;margin-top:6px}
+.tag{font-size:11px;color:var(--sys-soft);background:rgba(47,200,255,.08);
+  border:1px solid rgba(47,200,255,.2);padding:2px 8px;border-radius:3px;letter-spacing:.02em}
+.tag.note{color:var(--dim);background:rgba(108,131,179,.08);border-color:rgba(108,131,179,.22)}
+.tag.gold{color:var(--gold);border-color:rgba(255,207,77,.3);background:rgba(255,207,77,.07)}
+
+.clear-banner{text-align:center;padding:22px 16px;border:1px solid rgba(57,230,168,.35);
+  border-radius:4px;background:rgba(57,230,168,.06);margin-top:14px}
+.clear-banner .big{font-family:'Orbitron',sans-serif;font-weight:900;font-size:18px;color:var(--ok);
+  letter-spacing:.14em;text-shadow:0 0 16px rgba(57,230,168,.5)}
+.clear-banner p{font-size:12px;color:var(--dim);margin:8px 0 0}
+
+.empty{text-align:center;padding:30px 18px;color:var(--dim);font-size:13px;line-height:1.7}
+.empty .ico{font-size:30px;opacity:.5;margin-bottom:8px}
+
+/* ---- penalty banner ---- */
+.pen-banner{border:1px solid rgba(255,46,87,.45);background:rgba(255,46,87,.08);
+  border-radius:4px;padding:14px 16px;margin-bottom:16px;position:relative;
+  box-shadow:0 0 24px rgba(255,46,87,.2),inset 0 0 30px rgba(255,46,87,.05)}
+.pen-banner .eyebrow{color:var(--danger);text-shadow:0 0 12px rgba(255,46,87,.6)}
+.pen-banner p{margin:8px 0 0;font-size:13px;line-height:1.6}
+.pen-banner .ptxt{color:var(--danger-soft);font-weight:700}
+.pen-banner button{margin-top:12px;width:100%}
+
+/* ---- weekday selector ---- */
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:16px}
+.day{font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;padding:11px 0;
+  text-align:center;border:1px solid var(--line);border-radius:4px;color:var(--dim);
+  cursor:pointer;transition:.18s;background:rgba(0,0,0,.25);position:relative}
+.day .cnt{position:absolute;top:-6px;right:-4px;font-size:9px;min-width:15px;height:15px;
+  border-radius:8px;background:var(--mana);color:#fff;display:grid;place-items:center;
+  font-family:'Noto Sans KR';padding:0 3px}
+.day.today{color:var(--sys-soft);border-color:rgba(47,200,255,.45)}
+.day.sel{color:var(--void);background:var(--sys);border-color:var(--sys);
+  box-shadow:0 0 18px rgba(47,200,255,.55)}
+.day.sun{color:#ff7d97}
+.day.sel.sun{color:var(--void);background:var(--danger);box-shadow:0 0 18px rgba(255,46,87,.5)}
+
+/* ---- exercise / penalty cards ---- */
+.card{border:1px solid var(--line);border-radius:4px;padding:13px 14px;margin-bottom:10px;
+  background:rgba(0,0,0,.22);position:relative}
+.card .ctitle{font-weight:700;font-size:15px;padding-right:60px}
+.card .cmeta{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.card .actions{position:absolute;top:11px;right:11px;display:flex;gap:8px}
+.iconbtn{width:30px;height:30px;display:grid;place-items:center;border:1px solid var(--line);
+  border-radius:4px;background:rgba(0,0,0,.3);color:var(--dim);cursor:pointer;transition:.15s}
+.iconbtn:hover{color:var(--sys);border-color:var(--sys)}
+.iconbtn.del:hover{color:var(--danger);border-color:var(--danger)}
+.iconbtn svg{width:15px;height:15px}
+
+.pen-card{display:flex;align-items:center;gap:12px}
+.pen-card .pi{font-family:'Orbitron';font-size:12px;color:var(--danger);flex:none;
+  width:26px;height:26px;display:grid;place-items:center;border:1px solid rgba(255,46,87,.35);
+  border-radius:4px;background:rgba(255,46,87,.06)}
+.pen-card .pt{flex:1;font-size:14px;line-height:1.4}
+
+/* ---- buttons ---- */
+.btn{font-family:'Noto Sans KR';font-weight:700;font-size:14px;letter-spacing:.02em;
+  padding:13px 16px;border:1px solid var(--sys);border-radius:4px;color:var(--sys);
+  background:rgba(47,200,255,.06);cursor:pointer;transition:.18s;width:100%;
+  text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn:hover,.btn:active{background:var(--sys);color:var(--void);box-shadow:0 0 22px rgba(47,200,255,.5)}
+.btn.ghost{border-color:var(--line);color:var(--dim);background:rgba(0,0,0,.2)}
+.btn.ghost:hover{color:var(--text);border-color:var(--sys);background:rgba(47,200,255,.06);box-shadow:none}
+.btn.danger{border-color:var(--danger);color:var(--danger-soft);background:rgba(255,46,87,.06)}
+.btn.danger:hover{background:var(--danger);color:#fff;box-shadow:0 0 22px rgba(255,46,87,.45)}
+.btn.sm{padding:9px 12px;font-size:12.5px;width:auto}
+.row{display:flex;gap:10px}
+.row>*{flex:1}
+
+/* ---- inputs / modal ---- */
+.modal-bg{position:fixed;inset:0;z-index:100;background:rgba(2,4,10,.78);
+  backdrop-filter:blur(4px);display:none;align-items:flex-end;justify-content:center;
+  padding:0 0 env(safe-area-inset-bottom)}
+.modal-bg.show{display:flex;animation:fade .25s ease}
+.sheet{width:100%;max-width:520px;background:linear-gradient(180deg,#0c1426,#070b16);
+  border-top:1px solid var(--sys);border-radius:14px 14px 0 0;padding:20px 18px
+  calc(env(safe-area-inset-bottom) + 20px);
+  box-shadow:0 -20px 60px rgba(0,0,0,.6),0 0 40px rgba(47,200,255,.15);
+  animation:slideup .32s cubic-bezier(.2,.85,.25,1);max-height:88vh;overflow-y:auto}
+@keyframes slideup{from{transform:translateY(100%)}to{transform:none}}
+.sheet h3{font-size:16px;margin:0 0 16px;letter-spacing:.02em;display:flex;align-items:center;gap:8px}
+label.f{display:block;font-size:11.5px;color:var(--dim);letter-spacing:.06em;
+  margin:12px 0 6px;text-transform:uppercase}
+input.t,textarea.t,select.t{width:100%;font-family:'Noto Sans KR';font-size:15px;color:var(--text);
+  background:rgba(0,0,0,.4);border:1px solid var(--line);border-radius:4px;padding:12px 13px;
+  outline:none;transition:.18s}
+input.t:focus,textarea.t:focus{border-color:var(--sys);box-shadow:0 0 0 3px rgba(47,200,255,.12)}
+input.t::placeholder,textarea.t::placeholder{color:#3f5278}
+textarea.t{resize:vertical;min-height:54px}
+
+/* ---- system announcement modal ---- */
+.announce{display:none;position:fixed;inset:0;z-index:200;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 50% 50%,rgba(4,8,20,.6),rgba(2,4,10,.92));padding:24px}
+.announce.show{display:flex}
+.ann-box{position:relative;width:100%;max-width:360px;text-align:center;padding:34px 26px;
+  border:1px solid var(--sys);border-radius:6px;background:rgba(10,18,38,.86);
+  box-shadow:0 0 60px rgba(47,200,255,.35),inset 0 0 50px rgba(47,120,255,.1);
+  animation:pop .4s cubic-bezier(.2,1.4,.3,1)}
+.ann-box.pen{border-color:var(--danger);box-shadow:0 0 60px rgba(255,46,87,.4),inset 0 0 50px rgba(255,46,87,.08);
+  animation:pop .4s cubic-bezier(.2,1.4,.3,1),shake .5s .35s}
+@keyframes pop{from{transform:scale(.8);opacity:0}to{transform:none;opacity:1}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+.ann-box::before,.ann-box::after{content:"";position:absolute;width:18px;height:18px;border:2px solid var(--sys)}
+.ann-box.pen::before,.ann-box.pen::after{border-color:var(--danger)}
+.ann-box::before{top:-1px;left:-1px;border-right:none;border-bottom:none}
+.ann-box::after{bottom:-1px;right:-1px;border-left:none;border-top:none}
+.ann-sys{font-family:'Orbitron';font-size:11px;letter-spacing:.4em;color:var(--sys);margin-bottom:18px}
+.ann-box.pen .ann-sys{color:var(--danger)}
+.ann-title{font-family:'Orbitron';font-weight:900;font-size:30px;letter-spacing:.1em;color:#fff;
+  text-shadow:0 0 24px rgba(47,200,255,.7);margin-bottom:6px;animation:glowpulse 1.6s ease-in-out infinite}
+.ann-box.pen .ann-title{text-shadow:0 0 24px rgba(255,46,87,.7)}
+@keyframes glowpulse{50%{opacity:.82}}
+.ann-line{font-size:14px;color:var(--text);margin:4px 0;line-height:1.6}
+.ann-line .hi{color:var(--sys-soft);font-weight:700}
+.ann-box.pen .ann-line .hi{color:var(--danger-soft)}
+.ann-pen-txt{margin:14px 0 4px;padding:12px;border:1px dashed rgba(255,46,87,.4);border-radius:4px;
+  font-weight:700;color:var(--danger-soft);font-size:15px}
+.ann-box .btn{margin-top:22px}
+
+/* ---- bottom nav ---- */
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:40;
+  background:linear-gradient(180deg,rgba(8,12,24,.7),rgba(5,8,16,.96));
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border-top:1px solid var(--line);
+  padding:8px 8px calc(env(safe-area-inset-bottom) + 6px)}
+.nav-inner{max-width:520px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
+.tab{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 0;
+  color:var(--dim);cursor:pointer;transition:.18s;border-radius:8px;position:relative}
+.tab svg{width:22px;height:22px;stroke-width:1.7}
+.tab span{font-size:10px;letter-spacing:.04em}
+.tab.active{color:var(--sys)}
+.tab.active svg{filter:drop-shadow(0 0 8px rgba(47,200,255,.7))}
+.tab .dot{position:absolute;top:5px;right:calc(50% - 18px);width:7px;height:7px;border-radius:50%;
+  background:var(--danger);box-shadow:0 0 8px var(--danger);display:none}
+.tab .dot.on{display:block}
+
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 96px);transform:translateX(-50%) translateY(20px);
+  background:rgba(10,18,38,.95);border:1px solid var(--sys);color:var(--sys-soft);
+  padding:11px 18px;border-radius:4px;font-size:13px;z-index:120;opacity:0;transition:.3s;
+  box-shadow:0 0 24px rgba(47,200,255,.3);pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.001s !important;transition-duration:.05s !important}
+}
+:focus-visible{outline:2px solid var(--sys);outline-offset:2px}
+</style>
+</head>
+<body>
+<div class="bg"></div><div class="grid"></div>
+
+<div class="app">
+
+  <!-- STATUS -->
+  <section class="status">
+    <div class="panel status-inner">
+      <span class="br-tr"></span><span class="br-bl"></span>
+      <div class="status-top">
+        <div>
+          <span class="eyebrow">STATUS</span>
+          <h1 class="pname" id="pname">PLAYER</h1>
+        </div>
+        <div class="rank">
+          <div class="rank-badge" id="rankBadge">E</div>
+          <div class="rank-label" id="rankLabel">RANK</div>
+        </div>
+      </div>
+      <div class="lv-row">
+        <span class="lv-tag">LEVEL</span>
+        <span class="lv-num" id="lvNum">1</span>
+      </div>
+      <div class="exp-wrap">
+        <div class="exp-meta"><span>EXP</span><span><b id="expCur">0</b> / <span id="expMax">100</span></span></div>
+        <div class="bar"><i id="expBar" style="width:0%"></i></div>
+      </div>
+      <div class="chips">
+        <span class="chip fire">🔥 연속 <b id="streak">0</b>일</span>
+        <span class="chip">클리어 <b id="totCleared">0</b></span>
+        <span class="chip">실패 <b id="totMissed">0</b></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- penalty banner injected here -->
+  <div id="penBannerSlot"></div>
+
+  <!-- QUEST VIEW -->
+  <section class="view active" id="view-quest">
+    <div class="qhead">
+      <div>
+        <span class="eyebrow">DAILY QUEST</span>
+        <div class="qdate" id="qdate">—</div>
+      </div>
+      <div style="text-align:right">
+        <div class="clock" id="clock">00:00:00</div>
+        <div class="qdate" style="margin-top:2px">자정까지</div>
+      </div>
+    </div>
+    <div class="panel mt">
+      <span class="br-tr"></span><span class="br-bl"></span>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <h2 class="sec">오늘의 퀘스트</h2>
+        <span class="progress-line" id="qprog">0 / 0</span>
+      </div>
+      <div id="questList"></div>
+    </div>
+  </section>
+
+  <!-- ROUTINE VIEW -->
+  <section class="view" id="view-routine">
+    <span class="eyebrow">ROUTINE</span>
+    <h2 class="sec mt">운동 루틴 관리</h2>
+    <p class="sub">요일을 고르고 운동을 등록하라. 등록한 운동은 그날의 일일 퀘스트가 된다. 언제든 수정·삭제할 수 있다.</p>
+    <div class="days" id="dayPicker"></div>
+    <div id="routineList"></div>
+    <button class="btn mt" onclick="openExerciseForm()">＋ 운동 추가</button>
+  </section>
+
+  <!-- PENALTY VIEW -->
+  <section class="view" id="view-penalty">
+    <span class="eyebrow">PENALTY</span>
+    <h2 class="sec mt">벌칙 관리</h2>
+    <p class="sub">퀘스트 실패 시 이 목록에서 하나가 무작위로 부과된다. 여러 개를 등록할수록 예측이 어려워진다.</p>
+    <div id="penaltyList"></div>
+    <div class="row mt">
+      <input class="t" id="penInput" placeholder="예: 팔굽혀펴기 50개" style="flex:2.2" onkeydown="if(event.key==='Enter')addPenalty()">
+      <button class="btn sm" style="flex:1" onclick="addPenalty()">추가</button>
+    </div>
+  </section>
+
+  <!-- SETTINGS VIEW -->
+  <section class="view" id="view-settings">
+    <span class="eyebrow">SYSTEM</span>
+    <h2 class="sec mt">설정 · 데이터</h2>
+    <p class="sub">플레이어 정보와 데이터를 관리한다. 기기 안에만 저장되므로, 가끔 백업해 두면 데이터를 잃지 않는다.</p>
+    <div class="panel">
+      <span class="br-tr"></span><span class="br-bl"></span>
+      <label class="f">플레이어 이름</label>
+      <div class="row">
+        <input class="t" id="nameInput" maxlength="16" style="flex:2.4">
+        <button class="btn sm" style="flex:1" onclick="saveName()">변경</button>
+      </div>
+    </div>
+    <div class="panel mt">
+      <span class="br-tr"></span><span class="br-bl"></span>
+      <h2 class="sec">백업 / 복원</h2>
+      <p class="sub" style="margin-bottom:12px">현재 데이터를 파일로 내보내거나, 백업 파일을 불러와 복원한다.</p>
+      <div class="row">
+        <button class="btn ghost sm" style="flex:1" onclick="exportData()">백업 내보내기</button>
+        <button class="btn ghost sm" style="flex:1" onclick="document.getElementById('importFile').click()">복원하기</button>
+      </div>
+      <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importData(event)">
+    </div>
+    <div class="panel mt">
+      <span class="br-tr"></span><span class="br-bl"></span>
+      <h2 class="sec">위험 구역</h2>
+      <p class="sub" style="margin-bottom:12px">모든 진행 상황, 루틴, 벌칙을 삭제하고 Lv.1로 되돌린다. 되돌릴 수 없다.</p>
+      <button class="btn danger" onclick="resetAll()">전체 초기화</button>
+    </div>
+    <p class="sub" style="text-align:center;margin-top:18px;opacity:.6">SYSTEM v1 · 데이터는 이 기기에만 저장됩니다</p>
+  </section>
+
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="nav">
+  <div class="nav-inner">
+    <div class="tab active" data-view="quest" onclick="switchTab('quest')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      <span>퀘스트</span><span class="dot" id="dotQuest"></span>
+    </div>
+    <div class="tab" data-view="routine" onclick="switchTab('routine')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      <span>루틴</span>
+    </div>
+    <div class="tab" data-view="penalty" onclick="switchTab('penalty')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+      <span>벌칙</span><span class="dot" id="dotPen"></span>
+    </div>
+    <div class="tab" data-view="settings" onclick="switchTab('settings')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <span>설정</span>
+    </div>
+  </div>
+</nav>
+
+<!-- EXERCISE FORM SHEET -->
+<div class="modal-bg" id="exSheet">
+  <div class="sheet">
+    <h3 id="exFormTitle">운동 추가</h3>
+    <label class="f">요일</label>
+    <select class="t" id="exDay"></select>
+    <label class="f">운동 이름 *</label>
+    <input class="t" id="exName" placeholder="예: 벤치프레스">
+    <label class="f">도구 (중량 / 기구명)</label>
+    <input class="t" id="exTool" placeholder="예: 바벨 60kg">
+    <div class="row">
+      <div style="flex:1"><label class="f">세트당 횟수 / 시간</label><input class="t" id="exReps" placeholder="예: 12회 / 30초"></div>
+      <div style="flex:1"><label class="f">세트 수</label><input class="t" id="exSets" placeholder="예: 4"></div>
+    </div>
+    <label class="f">특이사항</label>
+    <textarea class="t" id="exNote" placeholder="예: 마지막 세트는 실패 지점까지"></textarea>
+    <div class="row" style="margin-top:18px">
+      <button class="btn ghost" onclick="closeSheet('exSheet')">취소</button>
+      <button class="btn" onclick="saveExercise()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- PENALTY EDIT SHEET -->
+<div class="modal-bg" id="penEditSheet">
+  <div class="sheet">
+    <h3>벌칙 수정</h3>
+    <label class="f">벌칙 내용</label>
+    <input class="t" id="penEditInput" placeholder="벌칙 내용">
+    <div class="row" style="margin-top:18px">
+      <button class="btn ghost" onclick="closeSheet('penEditSheet')">취소</button>
+      <button class="btn" onclick="savePenaltyEdit()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- SYSTEM ANNOUNCE -->
+<div class="announce" id="announce">
+  <div class="ann-box" id="annBox">
+    <div class="ann-sys" id="annSys">SYSTEM</div>
+    <div class="ann-title" id="annTitle">LEVEL UP</div>
+    <div id="annBody"></div>
+    <button class="btn" id="annBtn" onclick="closeAnnounce()">확인</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+const KEY='soloLevelWorkout_v1';
+const WEEK=['월','화','수','목','금','토','일']; // 0=Mon ... 6=Sun
+const ITEM_XP=10, CLEAR_BONUS=50, MISS_PENALTY=40;
+
+const DEFAULT=()=>({
+  version:1,
+  player:{name:'PLAYER',level:1,exp:0},
+  routines:{0:[],1:[],2:[],3:[],4:[],5:[],6:[]},
+  penalties:[],
+  progress:{},          // "YYYY-MM-DD": {quest:[{...,done}], cleared:bool, settled:bool}
+  pendingPenalty:null,  // {text,count,date}
+  lastSeenDate:null,
+  stats:{streak:0,bestStreak:0,totalCleared:0,totalMissed:0}
+});
+
+let S=load();
+let selDay=todayIdx();
+let editingPenIdx=-1, editingExId=null;
+
+/* ---------- storage ---------- */
+function load(){
+  try{const r=localStorage.getItem(KEY);if(r){const d=JSON.parse(r);return Object.assign(DEFAULT(),d);}}catch(e){}
+  return DEFAULT();
+}
+function save(){localStorage.setItem(KEY,JSON.stringify(S));}
+
+/* ---------- date utils ---------- */
+function pad(n){return String(n).padStart(2,'0');}
+function dstr(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+function today(){return dstr(new Date());}
+function todayIdx(){return (new Date().getDay()+6)%7;} // Mon=0
+function idxOf(dStr){const[y,m,da]=dStr.split('-').map(Number);return (new Date(y,m-1,da).getDay()+6)%7;}
+function* datesBetween(startStr,endExclStr){
+  // yields date strings from startStr (excl) up to endExclStr (excl)
+  let[y,m,d]=startStr.split('-').map(Number);
+  let cur=new Date(y,m-1,d); cur.setDate(cur.getDate()+1);
+  const end=new Date(...endExclStr.split('-').map((v,i)=>i===1?v-1:Number(v)));
+  while(cur<end){yield dstr(cur);cur.setDate(cur.getDate()+1);}
+}
+
+/* ---------- level / exp ---------- */
+function expNeed(lv){return 80+lv*20;}
+function rankOf(lv){
+  if(lv>=60)return['군주','MONARCH'];
+  if(lv>=50)return['S','S-RANK'];
+  if(lv>=40)return['A','A-RANK'];
+  if(lv>=30)return['B','B-RANK'];
+  if(lv>=20)return['C','C-RANK'];
+  if(lv>=10)return['D','D-RANK'];
+  return['E','E-RANK'];
+}
+function gainExp(delta){
+  const p=S.player; const before=p.level; p.exp+=delta; let ch=0;
+  while(p.exp>=expNeed(p.level)){p.exp-=expNeed(p.level);p.level++;ch++;}
+  while(p.exp<0){if(p.level<=1){p.exp=0;break;}p.level--;p.exp+=expNeed(p.level);ch--;}
+  return {levels:ch,before,after:p.level};
+}
+
+/* ---------- reconcile (check-on-open) ---------- */
+function ensureToday(){
+  const t=today();
+  const cur=S.routines[idxOf(t)]||[];
+  const prev=S.progress[t];
+  let cleared=prev&&prev.cleared||false;
+  const prevQ=prev?prev.quest:[];
+  const quest=cur.map(it=>{
+    const ex=prevQ.find(q=>q.id===it.id);
+    return {id:it.id,name:it.name,tool:it.tool,reps:it.reps,sets:it.sets,note:it.note,done:ex?ex.done:false};
+  });
+  // if quest changed such that not all done, cleared may be invalid
+  if(cleared && !(quest.length>0 && quest.every(q=>q.done))) cleared=false;
+  S.progress[t]={quest,cleared,settled:false};
+}
+function reconcile(){
+  const t=today();
+  // 1) settle explicit past progress entries that weren't cleared
+  let missed=0;
+  Object.keys(S.progress).forEach(d=>{
+    if(d<t && !S.progress[d].settled){
+      const p=S.progress[d];
+      if(p.quest.length>0 && !p.cleared) missed++;
+      p.settled=true;
+    }
+  });
+  // 2) days never opened between lastSeen and today with a non-empty routine
+  if(S.lastSeenDate){
+    for(const d of datesBetween(S.lastSeenDate,t)){
+      if(S.progress[d]) continue;
+      const r=S.routines[idxOf(d)]||[];
+      if(r.length>0){missed++; S.progress[d]={quest:[],cleared:false,settled:true};}
+    }
+  }
+  if(missed>0){
+    S.stats.streak=0;
+    S.stats.totalMissed+=missed;
+    gainExp(-MISS_PENALTY*missed);
+    const txt=S.penalties.length?S.penalties[Math.floor(Math.random()*S.penalties.length)]:null;
+    S.pendingPenalty={text:txt,count:missed,date:t,_new:true};
+  }
+  S.lastSeenDate=t;
+  ensureToday();
+  save();
+}
+
+/* ---------- rendering ---------- */
+function renderStatus(){
+  const p=S.player;const[badge,label]=rankOf(p.level);
+  document.getElementById('pname').textContent=p.name;
+  document.getElementById('rankBadge').textContent=badge;
+  document.getElementById('rankLabel').textContent=label;
+  document.getElementById('lvNum').textContent=p.level;
+  const need=expNeed(p.level);
+  document.getElementById('expCur').textContent=p.exp;
+  document.getElementById('expMax').textContent=need;
+  document.getElementById('expBar').style.width=Math.min(100,p.exp/need*100)+'%';
+  document.getElementById('streak').textContent=S.stats.streak;
+  document.getElementById('totCleared').textContent=S.stats.totalCleared;
+  document.getElementById('totMissed').textContent=S.stats.totalMissed;
+}
+
+function renderPenaltyBanner(){
+  const slot=document.getElementById('penBannerSlot');
+  if(S.pendingPenalty){
+    const pp=S.pendingPenalty;
+    const txt=pp.text?`부과된 벌칙: <span class="ptxt">${esc(pp.text)}</span>`
+                     :`<span class="ptxt">등록된 벌칙이 없다.</span> [벌칙] 탭에서 추가하라.`;
+    slot.innerHTML=`<div class="pen-banner">
+      <span class="eyebrow">PENALTY</span>
+      <p>퀘스트 실패 (${pp.count}일). EXP가 차감되었다.</p>
+      <p>${txt}</p>
+      ${pp.text?`<button class="btn danger" onclick="clearPenalty()">벌칙 수행 완료</button>`:''}
+    </div>`;
+    document.getElementById('dotPen').classList.add('on');
+  }else{
+    slot.innerHTML='';
+    document.getElementById('dotPen').classList.remove('on');
+  }
+}
+
+function renderQuest(){
+  ensureToday();
+  const t=today();const q=S.progress[t].quest;
+  const d=new Date();
+  document.getElementById('qdate').textContent=
+    `${d.getMonth()+1}월 ${d.getDate()}일 (${WEEK[todayIdx()]})`;
+  const doneN=q.filter(x=>x.done).length;
+  document.getElementById('qprog').textContent=`${doneN} / ${q.length}`;
+  const list=document.getElementById('questList');
+  // incomplete-day dot on nav
+  document.getElementById('dotQuest').classList.toggle('on', q.length>0 && doneN<q.length);
+  if(q.length===0){
+    list.innerHTML=`<div class="empty"><div class="ico">🌙</div>오늘은 등록된 퀘스트가 없다.<br>휴식일이거나, [루틴]에서 오늘 요일에 운동을 추가하라.</div>`;
+    return;
+  }
+  let html=q.map(x=>{
+    const tags=[];
+    if(x.tool)tags.push(`<span class="tag">${esc(x.tool)}</span>`);
+    if(x.reps)tags.push(`<span class="tag">${esc(x.reps)}</span>`);
+    if(x.sets)tags.push(`<span class="tag gold">${esc(x.sets)} 세트</span>`);
+    if(x.note)tags.push(`<span class="tag note">${esc(x.note)}</span>`);
+    return `<div class="quest ${x.done?'done':''}" onclick="toggleQuest('${x.id}')">
+      <div class="qcheck"><svg viewBox="0 0 24 24" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div>
+      <div class="qbody"><div class="qname">${esc(x.name)}</div>
+        <div class="qmeta">${tags.join('')}</div></div>
+    </div>`;
+  }).join('');
+  if(S.progress[t].cleared){
+    html+=`<div class="clear-banner"><div class="big">QUEST CLEAR</div>
+      <p>일일 퀘스트를 완수했다. 시스템이 당신의 노력을 기록했다.</p></div>`;
+  }
+  list.innerHTML=html;
+}
+
+function renderDayPicker(){
+  const dp=document.getElementById('dayPicker');
+  dp.innerHTML=WEEK.map((w,i)=>{
+    const cnt=(S.routines[i]||[]).length;
+    return `<div class="day ${i===6?'sun':''} ${i===selDay?'sel':''} ${i===todayIdx()?'today':''}" onclick="pickDay(${i})">
+      ${w}${cnt?`<span class="cnt">${cnt}</span>`:''}</div>`;
+  }).join('');
+}
+function renderRoutine(){
+  renderDayPicker();
+  const list=document.getElementById('routineList');
+  const items=S.routines[selDay]||[];
+  if(items.length===0){
+    list.innerHTML=`<div class="empty"><div class="ico">＋</div>${WEEK[selDay]}요일에 등록된 운동이 없다.<br>아래 버튼으로 첫 운동을 추가하라.</div>`;
+    return;
+  }
+  list.innerHTML=items.map(x=>{
+    const tags=[];
+    if(x.tool)tags.push(`<span class="tag">${esc(x.tool)}</span>`);
+    if(x.reps)tags.push(`<span class="tag">${esc(x.reps)}</span>`);
+    if(x.sets)tags.push(`<span class="tag gold">${esc(x.sets)} 세트</span>`);
+    if(x.note)tags.push(`<span class="tag note">${esc(x.note)}</span>`);
+    return `<div class="card">
+      <div class="ctitle">${esc(x.name)}</div>
+      <div class="actions">
+        <div class="iconbtn" onclick="editExercise('${x.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></div>
+        <div class="iconbtn del" onclick="delExercise('${x.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></div>
+      </div>
+      <div class="cmeta">${tags.join('')||'<span class="tag note">세부사항 없음</span>'}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderPenalty(){
+  const list=document.getElementById('penaltyList');
+  if(S.penalties.length===0){
+    list.innerHTML=`<div class="empty"><div class="ico">⚠</div>등록된 벌칙이 없다.<br>퀘스트 실패 시 부과할 벌칙을 아래에서 추가하라.</div>`;
+    return;
+  }
+  list.innerHTML=S.penalties.map((p,i)=>`<div class="card pen-card">
+    <div class="pi">${i+1}</div>
+    <div class="pt">${esc(p)}</div>
+    <div style="display:flex;gap:8px">
+      <div class="iconbtn" onclick="editPenalty(${i})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></div>
+      <div class="iconbtn del" onclick="delPenalty(${i})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></div>
+    </div>
+  </div>`).join('');
+}
+
+function renderSettings(){
+  document.getElementById('nameInput').value=S.player.name;
+}
+function renderAll(){renderStatus();renderPenaltyBanner();renderQuest();renderRoutine();renderPenalty();renderSettings();}
+
+/* ---------- quest interaction ---------- */
+function toggleQuest(id){
+  const t=today();const it=S.progress[t].quest.find(q=>q.id===id);if(!it)return;
+  it.done=!it.done;
+  gainExp(it.done?ITEM_XP:-ITEM_XP);
+  const all=S.progress[t].quest.length>0 && S.progress[t].quest.every(q=>q.done);
+  const wasCleared=S.progress[t].cleared;
+  if(all && !wasCleared){
+    S.progress[t].cleared=true;
+    const r=gainExp(CLEAR_BONUS);
+    S.stats.streak++; if(S.stats.streak>S.stats.bestStreak)S.stats.bestStreak=S.stats.streak;
+    S.stats.totalCleared++;
+    save();renderAll();
+    showAnnounce('clear',r);
+    return;
+  }else if(!all && wasCleared){
+    S.progress[t].cleared=false;
+    gainExp(-CLEAR_BONUS);
+    if(S.stats.streak>0)S.stats.streak--;
+    if(S.stats.totalCleared>0)S.stats.totalCleared--;
+  }
+  save();renderAll();
+}
+
+/* ---------- routine CRUD ---------- */
+function pickDay(i){selDay=i;renderRoutine();}
+function fillDaySelect(){
+  const sel=document.getElementById('exDay');
+  sel.innerHTML=WEEK.map((w,i)=>`<option value="${i}">${w}요일</option>`).join('');
+}
+function openExerciseForm(){
+  editingExId=null;
+  document.getElementById('exFormTitle').textContent='운동 추가';
+  document.getElementById('exDay').value=selDay;
+  ['exName','exTool','exReps','exSets','exNote'].forEach(id=>document.getElementById(id).value='');
+  openSheet('exSheet');
+}
+function editExercise(id){
+  const it=(S.routines[selDay]||[]).find(x=>x.id===id);if(!it)return;
+  editingExId=id;
+  document.getElementById('exFormTitle').textContent='운동 수정';
+  document.getElementById('exDay').value=selDay;
+  document.getElementById('exName').value=it.name;
+  document.getElementById('exTool').value=it.tool||'';
+  document.getElementById('exReps').value=it.reps||'';
+  document.getElementById('exSets').value=it.sets||'';
+  document.getElementById('exNote').value=it.note||'';
+  openSheet('exSheet');
+}
+function saveExercise(){
+  const name=document.getElementById('exName').value.trim();
+  if(!name){toast('운동 이름을 입력하라');return;}
+  const day=Number(document.getElementById('exDay').value);
+  const data={
+    name,
+    tool:document.getElementById('exTool').value.trim(),
+    reps:document.getElementById('exReps').value.trim(),
+    sets:document.getElementById('exSets').value.trim(),
+    note:document.getElementById('exNote').value.trim()
+  };
+  if(editingExId){
+    // remove from any day, re-add to chosen
+    Object.keys(S.routines).forEach(k=>{
+      S.routines[k]=S.routines[k].filter(x=>x.id!==editingExId);
+    });
+    S.routines[day].push(Object.assign({id:editingExId},data));
+  }else{
+    S.routines[day].push(Object.assign({id:uid()},data));
+  }
+  selDay=day;
+  save();closeSheet('exSheet');renderRoutine();renderQuest();renderStatus();
+  toast('저장되었다');
+}
+function delExercise(id){
+  if(!confirm('이 운동을 삭제하겠는가?'))return;
+  S.routines[selDay]=S.routines[selDay].filter(x=>x.id!==id);
+  save();renderRoutine();renderQuest();
+}
+
+/* ---------- penalty CRUD ---------- */
+function addPenalty(){
+  const v=document.getElementById('penInput').value.trim();
+  if(!v)return;
+  S.penalties.push(v);
+  document.getElementById('penInput').value='';
+  save();renderPenalty();
+}
+function editPenalty(i){editingPenIdx=i;document.getElementById('penEditInput').value=S.penalties[i];openSheet('penEditSheet');}
+function savePenaltyEdit(){
+  const v=document.getElementById('penEditInput').value.trim();
+  if(!v){toast('내용을 입력하라');return;}
+  S.penalties[editingPenIdx]=v;save();closeSheet('penEditSheet');renderPenalty();
+}
+function delPenalty(i){
+  if(!confirm('이 벌칙을 삭제하겠는가?'))return;
+  S.penalties.splice(i,1);save();renderPenalty();
+}
+function clearPenalty(){
+  S.pendingPenalty=null;save();renderPenaltyBanner();
+  toast('벌칙 완료. 시스템이 기록을 갱신했다.');
+}
+
+/* ---------- settings ---------- */
+function saveName(){
+  const v=document.getElementById('nameInput').value.trim()||'PLAYER';
+  S.player.name=v;save();renderStatus();toast('이름이 변경되었다');
+}
+function exportData(){
+  const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='system_backup_'+today()+'.json';
+  a.click();URL.revokeObjectURL(a.href);
+  toast('백업 파일을 저장했다');
+}
+function importData(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{const d=JSON.parse(r.result);
+      if(!d.player||!d.routines)throw 0;
+      S=Object.assign(DEFAULT(),d);save();selDay=todayIdx();renderAll();
+      toast('데이터를 복원했다');
+    }catch(_){toast('복원 실패: 올바른 백업 파일이 아니다');}
+  };
+  r.readAsText(f);e.target.value='';
+}
+function resetAll(){
+  if(!confirm('정말 모든 데이터를 초기화하겠는가? 되돌릴 수 없다.'))return;
+  if(!confirm('마지막 확인이다. Lv.1로 되돌아간다.'))return;
+  S=DEFAULT();S.lastSeenDate=today();save();selDay=todayIdx();renderAll();
+  toast('시스템이 초기화되었다');
+}
+
+/* ---------- announce modal ---------- */
+function showAnnounce(type,result){
+  const box=document.getElementById('annBox');
+  const sys=document.getElementById('annSys');
+  const title=document.getElementById('annTitle');
+  const body=document.getElementById('annBody');
+  if(type==='clear'){
+    box.classList.remove('pen');
+    sys.textContent='SYSTEM';
+    if(result.levels>0){
+      const[,label]=rankOf(result.after);const rankUp=rankOf(result.before)[1]!==label;
+      title.textContent='LEVEL UP';
+      body.innerHTML=`<div class="ann-line">일일 퀘스트 완료. <span class="hi">+${CLEAR_BONUS} EXP</span></div>
+        <div class="ann-line">Lv.${result.before} → <span class="hi">Lv.${result.after}</span></div>
+        ${rankUp?`<div class="ann-line">등급 상승: <span class="hi">${label}</span></div>`:''}`;
+    }else{
+      title.textContent='QUEST CLEAR';
+      body.innerHTML=`<div class="ann-line">일일 퀘스트 완료.</div>
+        <div class="ann-line"><span class="hi">+${CLEAR_BONUS} EXP</span> · 연속 ${S.stats.streak}일</div>`;
+    }
+  }else{ // penalty
+    box.classList.add('pen');
+    sys.textContent='WARNING';
+    title.textContent='PENALTY';
+    const pp=result;
+    body.innerHTML=`<div class="ann-line">일일 퀘스트 실패 (${pp.count}일)</div>
+      <div class="ann-line"><span class="hi">-${MISS_PENALTY*pp.count} EXP</span> · 연속 기록 초기화</div>
+      ${pp.text?`<div class="ann-pen-txt">${esc(pp.text)}</div><div class="ann-line" style="font-size:12px;color:var(--dim)">위 벌칙을 수행하라.</div>`
+               :`<div class="ann-line" style="font-size:12px;color:var(--dim)">등록된 벌칙이 없다. [벌칙] 탭에서 추가하라.</div>`}`;
+  }
+  document.getElementById('announce').classList.add('show');
+}
+function closeAnnounce(){document.getElementById('announce').classList.remove('show');}
+
+/* ---------- helpers / ui ---------- */
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+function openSheet(id){document.getElementById(id).classList.add('show');}
+function closeSheet(id){document.getElementById(id).classList.remove('show');}
+let toastT;
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');
+  clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('show'),2200);}
+function switchTab(v){
+  document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.view===v));
+  if(v==='quest')renderQuest();
+}
+// close sheet/announce on backdrop tap
+document.querySelectorAll('.modal-bg').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show');}));
+
+/* ---------- clock + midnight rollover ---------- */
+let curDay=today();
+function tick(){
+  const now=new Date();
+  const end=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1,0,0,0);
+  let s=Math.max(0,Math.floor((end-now)/1000));
+  const h=pad(Math.floor(s/3600));s%=3600;
+  const m=pad(Math.floor(s/60));const sec=pad(s%60);
+  document.getElementById('clock').textContent=`${h}:${m}:${sec}`;
+  // midnight rollover while app stays open
+  if(today()!==curDay){
+    curDay=today();
+    reconcile();renderAll();
+    if(S.pendingPenalty&&S.pendingPenalty._new){S.pendingPenalty._new=false;save();showAnnounce('pen',S.pendingPenalty);}
+  }
+}
+
+/* ---------- boot ---------- */
+function boot(){
+  fillDaySelect();
+  reconcile();
+  renderAll();
+  if(S.pendingPenalty&&S.pendingPenalty._new){
+    S.pendingPenalty._new=false;save();
+    setTimeout(()=>showAnnounce('pen',S.pendingPenalty),400);
+  }
+  tick();setInterval(tick,1000);
+  // re-check when app returns to foreground
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden){if(today()!==curDay){curDay=today();}reconcile();renderAll();}});
+}
+boot();
+</script>
+</body>
+</html>
