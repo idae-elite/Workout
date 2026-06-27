@@ -187,7 +187,15 @@ h2.sec{font-size:15px;font-weight:700;letter-spacing:.04em;margin:0 0 3px;color:
 /* ---- exercise / penalty cards ---- */
 .card{border:1px solid var(--line);border-radius:4px;padding:13px 14px;margin-bottom:10px;
   background:rgba(0,0,0,.22);position:relative}
-.card .ctitle{font-weight:700;font-size:15px;padding-right:60px}
+.card.draggable{display:flex;align-items:flex-start;gap:10px;padding:13px 14px 13px 6px}
+.card .grip{flex:none;align-self:stretch;width:30px;display:grid;place-items:center;
+  color:var(--dim);cursor:grab;touch-action:none;border-right:1px solid rgba(47,200,255,.12)}
+.card .grip:active{cursor:grabbing;color:var(--sys)}
+.card .grip svg{width:18px;height:18px;pointer-events:none}
+.card .cbody{flex:1;min-width:0;padding-right:120px}
+.card.dragging{z-index:20;opacity:.96;border-color:var(--sys);
+  box-shadow:0 10px 30px rgba(0,0,0,.55),0 0 24px rgba(47,200,255,.35);transition:none}
+.card .ctitle{font-weight:700;font-size:15px}
 .card .cmeta{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .card .actions{position:absolute;top:11px;right:11px;display:flex;gap:8px}
 .iconbtn{width:30px;height:30px;display:grid;place-items:center;border:1px solid var(--line);
@@ -195,6 +203,28 @@ h2.sec{font-size:15px;font-weight:700;letter-spacing:.04em;margin:0 0 3px;color:
 .iconbtn:hover{color:var(--sys);border-color:var(--sys)}
 .iconbtn.del:hover{color:var(--danger);border-color:var(--danger)}
 .iconbtn svg{width:15px;height:15px}
+
+/* skip states */
+.skip-banner{text-align:center;padding:20px 16px;border:1px dashed rgba(108,131,179,.4);
+  border-radius:4px;background:rgba(108,131,179,.06);margin-bottom:14px}
+.skip-banner .big{font-family:'Orbitron',sans-serif;font-weight:900;font-size:16px;color:var(--dim);
+  letter-spacing:.16em}
+.skip-banner p{font-size:12px;color:var(--dim);margin:8px 0 14px;line-height:1.6}
+.skip-banner .btn{max-width:200px;margin:0 auto}
+.quest.locked{opacity:.45;pointer-events:none}
+.skip-btn{margin-top:16px;opacity:.85}
+
+/* per-exercise enable/disable */
+.eswitch{position:relative;width:40px;height:23px;border-radius:12px;border:1px solid var(--line);
+  background:rgba(0,0,0,.45);cursor:pointer;transition:.2s;flex:none;padding:0;align-self:center}
+.eswitch>span{position:absolute;top:2px;left:2px;width:17px;height:17px;border-radius:50%;
+  background:var(--dim);transition:.2s}
+.eswitch.on{background:rgba(47,200,255,.22);border-color:var(--sys);box-shadow:0 0 10px rgba(47,200,255,.4)}
+.eswitch.on>span{left:19px;background:var(--sys);box-shadow:0 0 8px rgba(47,200,255,.85)}
+.card.off .cbody{opacity:.4}
+.card.off{border-color:rgba(108,131,179,.22)}
+.offtag{font-family:'Orbitron',sans-serif;font-size:9px;letter-spacing:.12em;color:var(--dim);
+  border:1px solid rgba(108,131,179,.4);border-radius:3px;padding:1px 5px;margin-left:8px;vertical-align:middle}
 
 .pen-card{display:flex;align-items:center;gap:12px}
 .pen-card .pi{font-family:'Orbitron';font-size:12px;color:var(--danger);flex:none;
@@ -289,7 +319,13 @@ textarea.t{resize:vertical;min-height:54px}
   box-shadow:0 0 24px rgba(47,200,255,.3);pointer-events:none;white-space:nowrap}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-/* ---- (wave removed) ---- */
+/* ---- background wave (EXP-bar shimmer style: horizontal, wide, dim) ---- */
+.wave{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
+.wave::before{content:"";position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent 12%,rgba(95,155,255,.07) 50%,transparent 88%);
+  transform:translateX(-100%);
+  animation:bgwave 2.6s linear infinite}
+@keyframes bgwave{to{transform:translateX(200%)}}
 
 /* ---- system materialize (point -> expand) ---- */
 @keyframes materialize{
@@ -307,6 +343,8 @@ textarea.t{resize:vertical;min-height:54px}
   100%{opacity:0;transform:scaleX(1)}
 }
 .status-inner{position:relative;overflow:hidden}
+.status .panel{opacity:0}
+.status .panel.materialize{opacity:1}
 .sweep{position:absolute;left:0;right:0;top:50%;height:2px;transform-origin:center;
   background:linear-gradient(90deg,transparent,var(--sys),transparent);
   box-shadow:0 0 16px var(--sys);pointer-events:none;opacity:0}
@@ -349,12 +387,13 @@ textarea.t{resize:vertical;min-height:54px}
 @media (prefers-reduced-motion:reduce){
   *{animation-duration:.001s !important;transition-duration:.05s !important}
   .materialize{clip-path:none !important}
+  .wave::before{animation-duration:2.6s !important}
 }
 :focus-visible{outline:2px solid var(--sys);outline-offset:2px}
 </style>
 </head>
 <body>
-<div class="bg"></div><div class="grid"></div>
+<div class="bg"></div><div class="grid"></div><div class="wave" aria-hidden="true"></div>
 
 <div class="app">
 
@@ -459,6 +498,12 @@ textarea.t{resize:vertical;min-height:54px}
         <button class="btn ghost sm" style="flex:1" onclick="document.getElementById('importFile').click()">복원하기</button>
       </div>
       <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importData(event)">
+    </div>
+    <div class="panel mt">
+      <span class="br-tr"></span><span class="br-bl"></span>
+      <h2 class="sec">진행도 초기화</h2>
+      <p class="sub" style="margin-bottom:12px">레벨·EXP·연속·클리어·실패 기록과 진행 내역만 초기화한다. <b style="color:var(--sys-soft)">루틴과 벌칙은 그대로 유지</b>된다.</p>
+      <button class="btn ghost" onclick="resetProgress()">진행도만 초기화</button>
     </div>
     <div class="panel mt">
       <span class="br-tr"></span><span class="br-bl"></span>
@@ -568,7 +613,7 @@ const DEFAULT=()=>({
   player:{name:'PLAYER',level:1,exp:0},
   routines:{0:[],1:[],2:[],3:[],4:[],5:[],6:[]},
   penalties:[],
-  progress:{},          // "YYYY-MM-DD": {quest:[{...,done}], cleared:bool, settled:bool}
+  progress:{},          // "YYYY-MM-DD": {quest:[{...,done}], cleared:bool, settled:bool, skipped:bool}
   pendingPenalty:null,  // {text,count,date}
   lastSeenDate:null,
   stats:{streak:0,bestStreak:0,totalCleared:0,totalMissed:0}
@@ -636,7 +681,7 @@ function gainExp(delta){
 /* ---------- reconcile (check-on-open) ---------- */
 function ensureToday(){
   const t=today();
-  const cur=S.routines[idxOf(t)]||[];
+  const cur=(S.routines[idxOf(t)]||[]).filter(it=>!it.off);
   const prev=S.progress[t];
   let cleared=prev&&prev.cleared||false;
   const prevQ=prev?prev.quest:[];
@@ -646,7 +691,8 @@ function ensureToday(){
   });
   // if quest changed such that not all done, cleared may be invalid
   if(cleared && !(quest.length>0 && quest.every(q=>q.done))) cleared=false;
-  S.progress[t]={quest,cleared,settled:false};
+  const skipped=prev&&prev.skipped||false;
+  S.progress[t]={quest,cleared,settled:false,skipped};
 }
 function reconcile(){
   const t=today();
@@ -655,16 +701,16 @@ function reconcile(){
   Object.keys(S.progress).forEach(d=>{
     if(d<t && !S.progress[d].settled){
       const p=S.progress[d];
-      if(p.quest.length>0 && !p.cleared) missed++;
+      if(!p.skipped && p.quest.length>0 && !p.cleared) missed++;
       p.settled=true;
     }
   });
-  // 2) days never opened between lastSeen and today with a non-empty routine
+  // 2) days never opened between lastSeen and today that had at least one enabled exercise
   if(S.lastSeenDate){
     for(const d of datesBetween(S.lastSeenDate,t)){
       if(S.progress[d]) continue;
       const r=S.routines[idxOf(d)]||[];
-      if(r.length>0){missed++; S.progress[d]={quest:[],cleared:false,settled:true};}
+      if(r.some(x=>!x.off)){missed++; S.progress[d]={quest:[],cleared:false,settled:true};}
     }
   }
   if(missed>0){
@@ -717,34 +763,42 @@ function renderPenaltyBanner(){
 
 function renderQuest(){
   ensureToday();
-  const t=today();const q=S.progress[t].quest;
+  const t=today();const P=S.progress[t];const q=P.quest;
   const d=new Date();
   document.getElementById('qdate').textContent=
     `${d.getMonth()+1}월 ${d.getDate()}일 (${WEEK[todayIdx()]})`;
   const doneN=q.filter(x=>x.done).length;
   document.getElementById('qprog').textContent=`${doneN} / ${q.length}`;
   const list=document.getElementById('questList');
-  // incomplete-day dot on nav
-  document.getElementById('dotQuest').classList.toggle('on', q.length>0 && doneN<q.length);
+  const skipped=!!P.skipped;
+  // incomplete-day dot on nav (not when skipped/cleared)
+  document.getElementById('dotQuest').classList.toggle('on', !skipped && !P.cleared && q.length>0 && doneN<q.length);
   if(q.length===0){
     list.innerHTML=`<div class="empty"><div class="ico">🌙</div>오늘은 등록된 퀘스트가 없다.<br>휴식일이거나, [루틴]에서 오늘 요일에 운동을 추가하라.</div>`;
     return;
   }
-  let html=q.map(x=>{
+  let html='';
+  if(skipped){
+    html+=`<div class="skip-banner"><div class="big">QUEST SKIPPED</div>
+      <p>오늘은 스킵했다. 연속 기록은 유지되지만,<br>오늘은 연속에 포함되지 않는다.</p></div>`;
+  }
+  html+=q.map(x=>{
     const tags=[];
     if(x.tool)tags.push(`<span class="tag">${esc(x.tool)}</span>`);
     if(x.reps)tags.push(`<span class="tag">${esc(x.reps)}</span>`);
     if(x.sets)tags.push(`<span class="tag gold">${esc(x.sets)} 세트</span>`);
     if(x.note)tags.push(`<span class="tag note">${esc(x.note)}</span>`);
-    return `<div class="quest ${x.done?'done':''}" onclick="toggleQuest('${x.id}')">
+    return `<div class="quest ${x.done?'done':''} ${skipped?'locked':''}" ${skipped?'':`onclick="toggleQuest('${x.id}')"`}>
       <div class="qcheck"><svg viewBox="0 0 24 24" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div>
       <div class="qbody"><div class="qname">${esc(x.name)}</div>
         <div class="qmeta">${tags.join('')}</div></div>
     </div>`;
   }).join('');
-  if(S.progress[t].cleared){
+  if(P.cleared){
     html+=`<div class="clear-banner"><div class="big">QUEST CLEAR</div>
       <p>일일 퀘스트를 완수했다. 시스템이 당신의 노력을 기록했다.</p></div>`;
+  }else{
+    html+=`<button class="btn ${skipped?'':'ghost'} skip-btn" onclick="toggleSkip()">${skipped?'스킵 해제':'오늘 하루 스킵'}</button>`;
   }
   list.innerHTML=html;
 }
@@ -752,9 +806,10 @@ function renderQuest(){
 function renderDayPicker(){
   const dp=document.getElementById('dayPicker');
   dp.innerHTML=WEEK.map((w,i)=>{
-    const cnt=(S.routines[i]||[]).length;
+    const cnt=(S.routines[i]||[]).filter(x=>!x.off).length;
+    const tot=(S.routines[i]||[]).length;
     return `<div class="day ${i===6?'sun':''} ${i===selDay?'sel':''} ${i===todayIdx()?'today':''}" onclick="pickDay(${i})">
-      ${w}${cnt?`<span class="cnt">${cnt}</span>`:''}</div>`;
+      ${w}${tot?`<span class="cnt">${cnt}</span>`:''}</div>`;
   }).join('');
 }
 function renderRoutine(){
@@ -766,20 +821,106 @@ function renderRoutine(){
     return;
   }
   list.innerHTML=items.map(x=>{
+    const off=!!x.off;
     const tags=[];
     if(x.tool)tags.push(`<span class="tag">${esc(x.tool)}</span>`);
     if(x.reps)tags.push(`<span class="tag">${esc(x.reps)}</span>`);
     if(x.sets)tags.push(`<span class="tag gold">${esc(x.sets)} 세트</span>`);
     if(x.note)tags.push(`<span class="tag note">${esc(x.note)}</span>`);
-    return `<div class="card">
-      <div class="ctitle">${esc(x.name)}</div>
+    return `<div class="card draggable ${off?'off':''}" data-id="${x.id}">
+      <div class="grip" onpointerdown="gripDown(event)" aria-label="드래그하여 순서 변경">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </div>
+      <div class="cbody">
+        <div class="ctitle">${esc(x.name)}${off?'<span class="offtag">OFF</span>':''}</div>
+        <div class="cmeta">${tags.join('')||'<span class="tag note">세부사항 없음</span>'}</div>
+      </div>
       <div class="actions">
+        <button class="eswitch ${off?'':'on'}" onclick="toggleExercise('${x.id}')" role="switch" aria-checked="${!off}" aria-label="운동 켜기/끄기"><span></span></button>
         <div class="iconbtn" onclick="editExercise('${x.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></div>
         <div class="iconbtn del" onclick="delExercise('${x.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></div>
       </div>
-      <div class="cmeta">${tags.join('')||'<span class="tag note">세부사항 없음</span>'}</div>
     </div>`;
   }).join('');
+}
+
+/* ---------- drag reorder (pointer-based, touch friendly) ---------- */
+let drag=null;
+function gripDown(e){
+  e.preventDefault();
+  const card=e.target.closest('.card');
+  const list=document.getElementById('routineList');
+  const cards=[...list.querySelectorAll('.card')];
+  const from=cards.indexOf(card);
+  if(from<0)return;
+  const rects=cards.map(c=>c.getBoundingClientRect());
+  const slot=rects[from].height+10;
+  drag={card,cards,rects,from,to:from,startY:e.clientY,slot};
+  card.classList.add('dragging');
+  document.body.style.userSelect='none';
+  window.addEventListener('pointermove',gripMove,{passive:false});
+  window.addEventListener('pointerup',gripUp);
+  window.addEventListener('pointercancel',gripUp);
+}
+function gripMove(e){
+  if(!drag)return;
+  e.preventDefault();
+  const dy=e.clientY-drag.startY;
+  drag.card.style.transform=`translateY(${dy}px)`;
+  const center=drag.rects[drag.from].top+drag.rects[drag.from].height/2+dy;
+  let to=drag.from;
+  for(let i=0;i<drag.cards.length;i++){
+    if(i===drag.from)continue;
+    const c=drag.rects[i].top+drag.rects[i].height/2;
+    if(i<drag.from && center<c) to=Math.min(to,i);
+    if(i>drag.from && center>c) to=Math.max(to,i);
+  }
+  drag.to=to;
+  drag.cards.forEach((c,i)=>{
+    if(i===drag.from)return;
+    let s=0;
+    if(to>drag.from && i>drag.from && i<=to) s=-drag.slot;
+    else if(to<drag.from && i<drag.from && i>=to) s=drag.slot;
+    c.style.transition='transform .15s ease';
+    c.style.transform=s?`translateY(${s}px)`:'';
+  });
+}
+function gripUp(){
+  if(!drag)return;
+  window.removeEventListener('pointermove',gripMove);
+  window.removeEventListener('pointerup',gripUp);
+  window.removeEventListener('pointercancel',gripUp);
+  document.body.style.userSelect='';
+  const {from,to}=drag;
+  drag.cards.forEach(c=>{c.style.transform='';c.style.transition='';});
+  drag.card.classList.remove('dragging');
+  drag=null;
+  if(from!==to){
+    const arr=S.routines[selDay];
+    const [it]=arr.splice(from,1);
+    arr.splice(to,0,it);
+    save();renderQuest();
+  }
+  renderRoutine();
+}
+
+/* ---------- skip (persistent toggle) ---------- */
+function toggleSkip(){
+  const t=today();
+  ensureToday();
+  if(S.progress[t].cleared){toast('이미 완료한 날은 스킵할 수 없다');return;}
+  S.progress[t].skipped=!S.progress[t].skipped;
+  save();renderAll();
+  toast(S.progress[t].skipped?'오늘은 스킵되었다':'스킵을 해제했다');
+}
+
+/* ---------- exercise enable/disable ---------- */
+function toggleExercise(id){
+  const it=(S.routines[selDay]||[]).find(x=>x.id===id);
+  if(!it)return;
+  it.off=!it.off;
+  save();renderRoutine();renderQuest();renderStatus();
+  toast(it.off?`'${it.name}' 비활성화`:`'${it.name}' 활성화`);
 }
 
 function renderPenalty(){
@@ -877,8 +1018,12 @@ function saveExercise(){
   };
   const days=[...selDays].sort((a,b)=>a-b);
   if(editingExId){
-    Object.keys(S.routines).forEach(k=>{S.routines[k]=S.routines[k].filter(x=>x.id!==editingExId);});
-    days.forEach((d,idx)=>S.routines[d].push(Object.assign({id:idx===0?editingExId:uid()},data)));
+    let prevOff=false;
+    Object.keys(S.routines).forEach(k=>{
+      const f=S.routines[k].find(x=>x.id===editingExId); if(f)prevOff=!!f.off;
+      S.routines[k]=S.routines[k].filter(x=>x.id!==editingExId);
+    });
+    days.forEach((d,idx)=>S.routines[d].push(Object.assign({id:idx===0?editingExId:uid(),off:prevOff},data)));
   }else{
     days.forEach(d=>S.routines[d].push(Object.assign({id:uid()},data)));
   }
@@ -957,6 +1102,18 @@ function importData(e){
     }catch(_){toast('복원 실패: 올바른 백업 파일이 아니다');}
   };
   r.readAsText(f);e.target.value='';
+}
+function resetProgress(){
+  if(!confirm('진행도를 초기화하겠는가?\n레벨·EXP·연속·클리어·실패 기록이 모두 사라진다.\n루틴과 벌칙은 그대로 유지된다.'))return;
+  S.player.level=1;
+  S.player.exp=0;
+  S.stats={streak:0,bestStreak:0,totalCleared:0,totalMissed:0};
+  S.progress={};
+  S.pendingPenalty=null;
+  S.lastSeenDate=today();
+  ensureToday();
+  save();renderAll();
+  toast('진행도가 초기화되었다');
 }
 function resetAll(){
   if(!confirm('정말 모든 데이터를 초기화하겠는가? 되돌릴 수 없다.'))return;
