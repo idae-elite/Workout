@@ -312,6 +312,31 @@ h2.sec{font-size:15px;font-weight:700;letter-spacing:.04em;margin:0 0 3px;color:
 .exday.on{color:var(--void);background:var(--sys);border-color:var(--sys);box-shadow:0 0 10px rgba(var(--sys-rgb),.4)}
 .exday.on.sun{background:var(--danger);border-color:var(--danger);box-shadow:0 0 10px rgba(var(--danger-rgb),.4)}
 
+/* superset / triset grouping */
+.group{border:1px solid rgba(var(--sys-rgb),.3);border-left:3px solid var(--sys);border-radius:6px;
+  padding:9px 9px 1px;margin-bottom:10px;background:rgba(var(--sys-rgb),.045)}
+.group-head{display:flex;align-items:center;justify-content:space-between;margin:0 2px 8px}
+.group-tag{font-family:'Orbitron',sans-serif;font-size:10.5px;letter-spacing:.16em;color:var(--sys);
+  display:flex;align-items:center;gap:6px;text-transform:uppercase;text-shadow:0 0 10px rgba(var(--sys-rgb),.4)}
+.group .card{margin-bottom:8px}
+.iconbtn.ungroup{width:26px;height:26px}
+#questList .group{padding:6px 11px 2px}
+#questList .group .quest{padding:12px 2px}
+#questList .group .quest:not(:last-child){border-bottom:1px solid rgba(var(--sys-rgb),.14)}
+/* selection mode */
+.group-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  border:1px solid var(--sys);border-radius:5px;padding:9px 12px;margin-bottom:12px;
+  background:rgba(var(--sys-rgb),.08);font-size:12.5px;color:var(--text)}
+.group-bar b{color:var(--sys);font-family:'Orbitron',sans-serif}
+.card.selectable{cursor:pointer;padding:13px 14px}
+.card.selectable .selbox{width:26px;height:26px;flex:none;border:1.5px solid var(--line);border-radius:6px;
+  display:grid;place-items:center;background:rgba(0,0,0,.3);transition:.15s}
+.card.selectable .selbox svg{width:15px;height:15px;opacity:0;transform:scale(.4);transition:.15s;stroke:var(--void)}
+.card.selectable.sel{border-color:var(--sys);background:rgba(var(--sys-rgb),.08)}
+.card.selectable.sel .selbox{background:var(--sys);border-color:var(--sys);box-shadow:0 0 12px rgba(var(--sys-rgb),.6)}
+.card.selectable.sel .selbox svg{opacity:1;transform:scale(1)}
+#groupBtn.on{background:var(--sys);color:var(--void);border-color:var(--sys)}
+
 .pen-card{display:flex;align-items:center;gap:12px}
 .pen-card .pi{font-family:'Orbitron';font-size:12px;color:var(--danger);flex:none;
   width:26px;height:26px;display:grid;place-items:center;border:1px solid rgba(var(--danger-rgb),.35);
@@ -609,7 +634,7 @@ textarea.t{resize:vertical;min-height:54px}
       </div>
       <div style="text-align:right">
         <div class="clock" id="clock">00:00:00</div>
-        <div class="qdate" style="margin-top:2px">자정까지</div>
+        <div class="qdate" style="margin-top:2px">리셋까지 (04:00)</div>
       </div>
     </div>
     <div class="panel mt">
@@ -628,7 +653,10 @@ textarea.t{resize:vertical;min-height:54px}
     <h2 class="sec mt">운동 관리</h2>
     <p class="sub">운동을 만들고, 각 운동 아래의 요일 버튼으로 수행할 요일을 배정하라. 배정한 요일에 그 운동이 일일 퀘스트로 나타난다.</p>
     <div id="routineList"></div>
-    <button class="btn mt" onclick="openExerciseForm()">＋ 운동 추가</button>
+    <div class="row mt">
+      <button class="btn" onclick="openExerciseForm()">＋ 운동 추가</button>
+      <button class="btn ghost" id="groupBtn" onclick="toggleGroupMode()">🔗 세트 묶기</button>
+    </div>
   </section>
 
   <!-- PENALTY VIEW -->
@@ -823,8 +851,10 @@ function save(){localStorage.setItem(KEY,JSON.stringify(S));}
 /* ---------- date utils ---------- */
 function pad(n){return String(n).padStart(2,'0');}
 function dstr(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
-function today(){return dstr(new Date());}
-function todayIdx(){return (new Date().getDay()+6)%7;} // Mon=0
+const RESET_HOUR=4; // a new "day" begins at 4:00 AM
+function logicalNow(){const d=new Date();d.setHours(d.getHours()-RESET_HOUR);return d;}
+function today(){return dstr(logicalNow());}
+function todayIdx(){return (logicalNow().getDay()+6)%7;} // Mon=0
 function idxOf(dStr){const[y,m,da]=dStr.split('-').map(Number);return (new Date(y,m-1,da).getDay()+6)%7;}
 function* datesBetween(startStr,endExclStr){
   // yields date strings from startStr (excl) up to endExclStr (excl)
@@ -877,7 +907,7 @@ function ensureToday(){
   const prevQ=prev?prev.quest:[];
   const quest=cur.map(it=>{
     const ex=prevQ.find(q=>q.id===it.id);
-    return {id:it.id,name:it.name,tool:it.tool,reps:it.reps,sets:it.sets,note:it.note,done:ex?ex.done:false};
+    return {id:it.id,name:it.name,tool:it.tool,reps:it.reps,sets:it.sets,note:it.note,group:it.group||null,done:ex?ex.done:false};
   });
   // if quest changed such that not all done, cleared may be invalid
   if(cleared && !(quest.length>0 && quest.every(q=>q.done))) cleared=false;
@@ -953,7 +983,7 @@ function renderPenaltyBanner(){
 function renderQuest(){
   ensureToday();
   const t=today();const P=S.progress[t];const q=P.quest;
-  const d=new Date();
+  const d=logicalNow();
   document.getElementById('qdate').textContent=
     `${d.getMonth()+1}월 ${d.getDate()}일 (${WEEK[todayIdx()]})`;
   const doneN=q.filter(x=>x.done).length;
@@ -971,7 +1001,7 @@ function renderQuest(){
     html+=`<div class="skip-banner"><div class="big">QUEST SKIPPED</div>
       <p>오늘은 스킵했다. 연속 기록은 유지되지만,<br>오늘은 연속에 포함되지 않는다.</p></div>`;
   }
-  html+=q.map(x=>{
+  const qCard=x=>{
     const tags=[];
     if(x.tool)tags.push(`<span class="tag">${esc(x.tool)}</span>`);
     if(x.reps)tags.push(`<span class="tag">${esc(x.reps)}</span>`);
@@ -982,7 +1012,19 @@ function renderQuest(){
       <div class="qbody"><div class="qname">${esc(x.name)}</div>
         <div class="qmeta">${tags.join('')}</div></div>
     </div>`;
-  }).join('');
+  };
+  for(let i=0;i<q.length;){
+    const g=q[i].group;
+    if(g){
+      let j=i;const run=[];
+      while(j<q.length && q[j].group===g){run.push(q[j]);j++;}
+      if(run.length>=2){
+        html+=`<div class="group"><div class="group-head"><span class="group-tag">${chainIcon()} ${groupLabel(run.length)}</span></div>${run.map(qCard).join('')}</div>`;
+        i=j; continue;
+      }
+    }
+    html+=qCard(q[i]); i++;
+  }
   if(P.cleared){
     html+=`<div class="clear-banner"><div class="big">QUEST CLEAR</div>
       <p>일일 퀘스트를 완수했다. 시스템이 당신의 노력을 기록했다.</p></div>`;
@@ -992,6 +1034,46 @@ function renderQuest(){
   list.innerHTML=html;
 }
 
+/* ---------- superset grouping ---------- */
+let groupMode=false, groupSel=new Set();
+function groupLabel(n){return n<=2?'슈퍼세트':n===3?'트라이셋':'자이언트세트';}
+function chainIcon(){return '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 12h6M8.5 8H8a4 4 0 0 0 0 8h.5M15.5 8h.5a4 4 0 0 1 0 8h-.5"/></svg>';}
+function exCard(x){
+  const off=!!x.off;
+  const days=x.days||[];
+  const tags=[];
+  if(x.tool)tags.push(`<span class="tag">${esc(x.tool)}</span>`);
+  if(x.reps)tags.push(`<span class="tag">${esc(x.reps)}</span>`);
+  if(x.sets)tags.push(`<span class="tag gold">${esc(x.sets)} 세트</span>`);
+  if(x.note)tags.push(`<span class="tag note">${esc(x.note)}</span>`);
+  if(groupMode){
+    const sel=groupSel.has(x.id);
+    return `<div class="card ex selectable ${sel?'sel':''} ${off?'off':''}" data-id="${x.id}" onclick="toggleGroupSel('${x.id}')">
+      <div class="ex-top">
+        <div class="selbox"><svg viewBox="0 0 24 24" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div>
+        <div class="cbody"><div class="ctitle">${esc(x.name)}</div>
+          <div class="cmeta">${tags.join('')||'<span class="tag note">세부사항 없음</span>'}</div></div>
+      </div></div>`;
+  }
+  const dayBtns=WEEK.map((w,i)=>`<button class="exday ${days.includes(i)?'on':''} ${i===6?'sun':''}" onclick="toggleExerciseDay('${x.id}',${i})">${w}</button>`).join('');
+  return `<div class="card ex ${off?'off':''}" data-id="${x.id}">
+    <div class="ex-top">
+      <div class="grip" onpointerdown="gripDown(event)" aria-label="드래그하여 순서 변경">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </div>
+      <div class="cbody">
+        <div class="ctitle">${esc(x.name)}${off?'<span class="offtag">OFF</span>':''}</div>
+        <div class="cmeta">${tags.join('')||'<span class="tag note">세부사항 없음</span>'}</div>
+      </div>
+      <div class="actions">
+        <button class="eswitch ${off?'':'on'}" onclick="toggleExercise('${x.id}')" role="switch" aria-checked="${!off}" aria-label="운동 켜기/끄기"><span></span></button>
+        <div class="iconbtn" onclick="editExercise('${x.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></div>
+        <div class="iconbtn del" onclick="delExercise('${x.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></div>
+      </div>
+    </div>
+    <div class="ex-days">${dayBtns}</div>
+  </div>`;
+}
 function renderRoutine(){
   const list=document.getElementById('routineList');
   const items=S.exercises||[];
@@ -999,35 +1081,52 @@ function renderRoutine(){
     list.innerHTML=`<div class="empty"><div class="ico">＋</div>아직 만든 운동이 없다.<br>아래 버튼으로 첫 운동을 추가하라.</div>`;
     return;
   }
-  list.innerHTML=items.map(x=>{
-    const off=!!x.off;
-    const days=x.days||[];
-    const tags=[];
-    if(x.tool)tags.push(`<span class="tag">${esc(x.tool)}</span>`);
-    if(x.reps)tags.push(`<span class="tag">${esc(x.reps)}</span>`);
-    if(x.sets)tags.push(`<span class="tag gold">${esc(x.sets)} 세트</span>`);
-    if(x.note)tags.push(`<span class="tag note">${esc(x.note)}</span>`);
-    const dayBtns=WEEK.map((w,i)=>
-      `<button class="exday ${days.includes(i)?'on':''} ${i===6?'sun':''}" onclick="toggleExerciseDay('${x.id}',${i})">${w}</button>`
-    ).join('');
-    return `<div class="card ex ${off?'off':''}" data-id="${x.id}">
-      <div class="ex-top">
-        <div class="grip" onpointerdown="gripDown(event)" aria-label="드래그하여 순서 변경">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
-        </div>
-        <div class="cbody">
-          <div class="ctitle">${esc(x.name)}${off?'<span class="offtag">OFF</span>':''}</div>
-          <div class="cmeta">${tags.join('')||'<span class="tag note">세부사항 없음</span>'}</div>
-        </div>
-        <div class="actions">
-          <button class="eswitch ${off?'':'on'}" onclick="toggleExercise('${x.id}')" role="switch" aria-checked="${!off}" aria-label="운동 켜기/끄기"><span></span></button>
-          <div class="iconbtn" onclick="editExercise('${x.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></div>
-          <div class="iconbtn del" onclick="delExercise('${x.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></div>
-        </div>
-      </div>
-      <div class="ex-days">${dayBtns}</div>
-    </div>`;
-  }).join('');
+  let html='';
+  if(groupMode){
+    html+=`<div class="group-bar"><span>묶을 운동 선택 · <b>${groupSel.size}</b>개</span>
+      <span style="display:flex;gap:8px"><button class="btn sm ghost" onclick="cancelGroupMode()">취소</button>
+      <button class="btn sm" onclick="confirmGroup()">묶기</button></span></div>`;
+    html+=items.map(exCard).join('');
+  }else{
+    for(let i=0;i<items.length;){
+      const g=items[i].group;
+      if(g){
+        let j=i;const run=[];
+        while(j<items.length && items[j].group===g){run.push(items[j]);j++;}
+        if(run.length>=2){
+          html+=`<div class="group"><div class="group-head">
+            <span class="group-tag">${chainIcon()} ${groupLabel(run.length)}</span>
+            <button class="iconbtn ungroup" onclick="ungroup('${g}')" aria-label="묶음 해제"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+          </div>${run.map(exCard).join('')}</div>`;
+          i=j; continue;
+        }
+      }
+      html+=exCard(items[i]); i++;
+    }
+  }
+  list.innerHTML=html;
+}
+function toggleGroupMode(){groupMode=!groupMode;groupSel.clear();const b=document.getElementById('groupBtn');if(b)b.classList.toggle('on',groupMode);renderRoutine();}
+function cancelGroupMode(){groupMode=false;groupSel.clear();const b=document.getElementById('groupBtn');if(b)b.classList.remove('on');renderRoutine();}
+function toggleGroupSel(id){groupSel.has(id)?groupSel.delete(id):groupSel.add(id);renderRoutine();}
+function confirmGroup(){
+  if(groupSel.size<2){toast('2개 이상 선택하라');return;}
+  const ids=[...groupSel];
+  const gid='g'+uid();
+  const arr=S.exercises;
+  const firstIdx=arr.findIndex(e=>ids.includes(e.id));
+  const members=arr.filter(e=>ids.includes(e.id)); members.forEach(m=>m.group=gid);
+  let before=0; for(let i=0;i<firstIdx;i++){ if(!ids.includes(arr[i].id)) before++; }
+  const rest=arr.filter(e=>!ids.includes(e.id));
+  rest.splice(before,0,...members);
+  S.exercises=rest;
+  groupMode=false;groupSel.clear();const b=document.getElementById('groupBtn');if(b)b.classList.remove('on');
+  save();renderRoutine();renderQuest();
+  toast(`${groupLabel(members.length)}(으)로 묶었다`);
+}
+function ungroup(gid){
+  (S.exercises||[]).forEach(e=>{if(e.group===gid)delete e.group;});
+  save();renderRoutine();renderQuest();toast('묶음을 해제했다');
 }
 
 /* ---------- drag reorder (pointer-based, touch friendly) ---------- */
@@ -1265,7 +1364,12 @@ function renderRankTable(){
 }
 function delExercise(id){
   if(!confirm('이 운동을 삭제하겠는가?'))return;
+  const g=(S.exercises||[]).find(x=>x.id===id);const gid=g&&g.group;
   S.exercises=(S.exercises||[]).filter(x=>x.id!==id);
+  if(gid){ // if a group is left with fewer than 2 members, dissolve it
+    const rem=S.exercises.filter(e=>e.group===gid);
+    if(rem.length<2)rem.forEach(e=>delete e.group);
+  }
   save();renderRoutine();renderQuest();
 }
 
@@ -1394,12 +1498,13 @@ document.querySelectorAll('.modal-bg').forEach(m=>m.addEventListener('click',e=>
 let curDay=today();
 function tick(){
   const now=new Date();
-  const end=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1,0,0,0);
+  let end=new Date(now.getFullYear(),now.getMonth(),now.getDate(),RESET_HOUR,0,0);
+  if(now>=end)end.setDate(end.getDate()+1);
   let s=Math.max(0,Math.floor((end-now)/1000));
   const h=pad(Math.floor(s/3600));s%=3600;
   const m=pad(Math.floor(s/60));const sec=pad(s%60);
   document.getElementById('clock').textContent=`${h}:${m}:${sec}`;
-  // midnight rollover while app stays open
+  // reset rollover (4 AM) while app stays open
   if(today()!==curDay){
     curDay=today();
     reconcile();renderAll();
